@@ -74,17 +74,32 @@ def start_file_transfer_seller(winner_ip, udp_port):
 
     # Send fin control message
     fin_msg = "fin".encode()
-    udp_socket.sendto(fin_msg, (winner_ip, udp_port))
-    print(f"Sending control seq {seq_num}: fin")
+    while True:
+        udp_socket.sendto(fin_msg, (winner_ip, udp_port))
+        print(f"Sending control seq {seq_num}: fin")
 
-    try:
-        ack, addr = udp_socket.recvfrom(1024)
-        if ack.decode() == f"ACK:{seq_num}":
-            print(f"Ack received: {seq_num}. File transfer complete.")
-    except socket.timeout:
-        print("Timeout waiting for ACK for fin. Exiting.")
-    finally:
-        udp_socket.close()
+        try:
+            ack, addr = udp_socket.recvfrom(1024)
+            if ack.decode() == f"ACK:{seq_num}":
+                print(f"Ack received: {seq_num}. File transfer complete.")
+                break  # Exit the loop after receiving the correct ACK
+        except socket.timeout:
+            print("Timeout waiting for ACK for fin. Retrying.")
+    udp_socket.close()
+    
+    # # Send fin control message
+    # fin_msg = "fin".encode()
+    # udp_socket.sendto(fin_msg, (winner_ip, udp_port))
+    # print(f"Sending control seq {seq_num}: fin")
+
+    # try:
+    #     ack, addr = udp_socket.recvfrom(1024)
+    #     if ack.decode() == f"ACK:{seq_num}":
+    #         print(f"Ack received: {seq_num}. File transfer complete.")
+    # except socket.timeout:
+    #     print("Timeout waiting for ACK for fin. Exiting.")
+    # finally:
+    #     udp_socket.close()
 
 
 def start_file_transfer_buyer(seller_ip, udp_port):
