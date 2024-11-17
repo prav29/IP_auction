@@ -90,6 +90,7 @@ def start_file_transfer_seller(winner_ip, udp_port):
 def start_file_transfer_buyer(seller_ip, udp_port):
     """
     Buyer function for receiving the file via Stop-and-Wait RDT.
+    Calculates Transfer Completion Time (TCT) and Average Throughput (AT).
     """
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -99,6 +100,9 @@ def start_file_transfer_buyer(seller_ip, udp_port):
     received_data = b""
     expected_seq_num = 0
     total_size = None
+
+    # Start timing for Transfer Completion Time (TCT)
+    start_time = time.time()
 
     while True:
         try:
@@ -124,7 +128,7 @@ def start_file_transfer_buyer(seller_ip, udp_port):
                 print("Msg received: fin")
                 udp_socket.sendto(f"ACK:{expected_seq_num}".encode(), addr)
                 print(f"Ack sent: {expected_seq_num}")
-                break
+                break  # End the loop after correctly processing the "fin" message
 
             else:
                 seq_num, chunk = packet.decode("latin1").split(":", 1)
@@ -144,11 +148,83 @@ def start_file_transfer_buyer(seller_ip, udp_port):
             print("Timeout waiting for packet. Retrying.")
             continue
 
+    # Calculate TCT and AT
+    end_time = time.time()
+    transfer_completion_time = end_time - start_time  # Total time in seconds
+    average_throughput = len(received_data) / transfer_completion_time  # Bytes per second
+
     # Save received file
     with open("recved.file", "wb") as file:
         file.write(received_data)
+
     print(f"File transfer complete. File saved as recved.file.")
+    print(f"Transfer Completion Time (TCT): {transfer_completion_time:.6f} seconds")
+    print(f"Average Throughput (AT): {average_throughput:.2f} bytes/second")
     udp_socket.close()
+
+
+# def start_file_transfer_buyer(seller_ip, udp_port):
+#     """
+#     Buyer function for receiving the file via Stop-and-Wait RDT.
+#     """
+#     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#     udp_socket.bind(("", udp_port))
+#     print("UDP socket opened for RDT.\nStart receiving file.")
+
+#     received_data = b""
+#     expected_seq_num = 0
+#     total_size = None
+
+#     while True:
+#         try:
+#             packet, addr = udp_socket.recvfrom(2048)
+
+#             # Simulate packet loss
+#             if numpy.random.binomial(1, PACKET_LOSS_RATE):
+#                 print(f"Pkt dropped: {expected_seq_num}")
+#                 continue
+
+#             if addr[0] != seller_ip:
+#                 print(f"Msg received from unauthorized IP {addr[0]}. Discarding.")
+#                 continue
+
+#             # Parse the message
+#             if packet.startswith(b"start"):
+#                 total_size = int(packet.decode().split()[1])
+#                 print(f"Msg received: start {total_size}")
+#                 udp_socket.sendto(f"ACK:{expected_seq_num}".encode(), addr)
+#                 print(f"Ack sent: {expected_seq_num}")
+
+#             elif packet.startswith(b"fin"):
+#                 print("Msg received: fin")
+#                 udp_socket.sendto(f"ACK:{expected_seq_num}".encode(), addr)
+#                 print(f"Ack sent: {expected_seq_num}")
+#                 break
+
+#             else:
+#                 seq_num, chunk = packet.decode("latin1").split(":", 1)
+#                 seq_num = int(seq_num)
+
+#                 if seq_num == expected_seq_num:
+#                     received_data += chunk.encode("latin1")
+#                     print(f"Received data seq {seq_num}: {len(received_data)}/{total_size}")
+#                     udp_socket.sendto(f"ACK:{seq_num}".encode(), addr)
+#                     print(f"Ack sent: {seq_num}")
+#                     expected_seq_num = 1 - expected_seq_num  # Toggle sequence number
+#                 else:
+#                     print(f"Msg received with mismatched sequence number {seq_num}. Expecting {expected_seq_num}")
+#                     udp_socket.sendto(f"ACK:{1 - expected_seq_num}".encode(), addr)
+
+#         except socket.timeout:
+#             print("Timeout waiting for packet. Retrying.")
+#             continue
+
+#     # Save received file
+#     with open("recved.file", "wb") as file:
+#         file.write(received_data)
+#     print(f"File transfer complete. File saved as recved.file.")
+#     udp_socket.close()
 
 
 def handle_server_response(connection):
