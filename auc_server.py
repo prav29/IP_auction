@@ -199,9 +199,10 @@ class AuctionManager:
         """
         if self.auction_data['auction_mode'] == 1:
             # Notify seller and winner in a first-price auction
-            self.seller_socket.send(f'Auction Finished!\nSuccess! Your item {self.auction_data["product_name"]} has been sold for ${highest_bid}.\nDisconnecting from the Auctioneer server. Auction is Over!'.encode())
-            highest_bidder.send(f'Auction Finished!\nSuccess! You won the item {self.auction_data["product_name"]}. Your payment due is ${highest_bid}.\nDisconnecting from the Auctioneer server. Auction is Over!'.encode())
-
+            self.seller_socket.send(f'Auction Finished!\nSuccess! Your item {self.auction_data["product_name"]} has been sold for ${highest_bid}. Buyer IP: {highest_bidder.getpeername()[0]}\nDisconnecting from the Auctioneer server. Auction is Over!'.encode())
+            
+            highest_bidder.send(f'Auction Finished!\nSuccess! You won the item {self.auction_data["product_name"]}. Your payment due is ${highest_bid}. Seller IP: {self.seller_socket.getpeername()[0]}\nDisconnecting from the Auctioneer server. Auction is Over!'.encode())
+            
         elif self.auction_data['auction_mode'] == 2:
             # For second-price auction, find second-highest bid
             del self.bid_records[highest_bidder]
@@ -209,8 +210,9 @@ class AuctionManager:
             second_highest_bid = self.bid_records[second_highest_bidder]
             
             # Notify seller and winner
-            self.seller_socket.send(f'Auction Finished!\nSuccess! Your item {self.auction_data["product_name"]} has been sold for ${second_highest_bid}.\nDisconnecting from the Auctioneer server. Auction is Over!'.encode())
-            highest_bidder.send(f'Auction Finished!\nSuccess! You won the item {self.auction_data["product_name"]}. Your payment due is ${second_highest_bid}.\nDisconnecting from the Auctioneer server. Auction is Over!'.encode())
+            self.seller_socket.send(f'Auction Finished!\nSuccess! Your item {self.auction_data["product_name"]} has been sold for ${second_highest_bid}. Buyer IP: {highest_bidder.getpeername()[0]}\nDisconnecting from the Auctioneer server. Auction is Over!'.encode())
+            
+            highest_bidder.send(f'Auction Finished!\nSuccess! You won the item {self.auction_data["product_name"]}. Your payment due is ${second_highest_bid}. Seller IP: {self.seller_socket.getpeername()[0]}\nDisconnecting from the Auctioneer server. Auction is Over!'.encode())
         
         # Notify all losing bidders
         for buyer in self.bidder_list:
